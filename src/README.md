@@ -9,6 +9,7 @@ The long-term goal is to turn this into a digital twin for a 4-wheel-drive, 4-wh
 ```text
 src/
 ├── README.md
+├── robby_control/
 └── robby_description/
     ├── CMakeLists.txt
     ├── package.xml
@@ -40,6 +41,20 @@ Main files:
 - `robby_description/CMakeLists.txt`
 - `robby_description/package.xml`
 
+### `robby_control`
+
+This package now contains the first control-side node for the digital twin.
+
+It currently contains:
+- A custom `swerve_odometry_node`
+- A launch file to run the odometry node
+- A YAML config file for wheel joint names, steer joint names, wheel positions, and wheel radius
+
+Main files:
+- `robby_control/robby_control/swerve_odometry_node.py`
+- `robby_control/launch/odometry.launch.py`
+- `robby_control/config/swerve_odometry.yaml`
+
 ## What Works Right Now
 
 - The robot model loads in RViz
@@ -51,12 +66,21 @@ Main files:
 - A ROS 2 Python launch file is available for display
 - The robot description can now be generated from xacro
 - Wheelbase, track width, wheel radius, and steering geometry constants now live in xacro properties
+- The first custom swerve odometry node is implemented and builds cleanly
+- Collision geometry now uses simple boxes and cylinders instead of mesh collisions
 
 Recommended launch command:
 
 ```bash
-source /home/aditya/ros2_ws/ITQ_robby/src/install/setup.bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_description display.launch.py
+```
+
+Recommended odometry launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_control odometry.launch.py
 ```
 
 ## Important Notes
@@ -70,6 +94,7 @@ Problems we already fixed:
 - Several steer-related names had typos
 - Meshes and URDF were not being installed by CMake
 - The old XML launch files were ROS 1 style and not ideal for ROS 2 bringup
+- The original mesh collisions were too detailed for a clean Gazebo collision model
 
 ### Current mesh path workaround
 
@@ -102,6 +127,7 @@ This is the architecture we are aiming for next:
 - `robby_control`
   - custom swerve kinematics
   - `cmd_vel` to wheel speed and steering angle conversion
+  - wheel and steer based odometry
   - future hardware or simulation interfaces
 - `robby_localization`
   - wheel odometry
@@ -133,6 +159,8 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [x] Verify wheel and steer joints can be moved from `joint_state_publisher_gui`
 - [x] Convert the main robot description flow to xacro
 - [x] Define wheel radius, track width, wheelbase, and steering geometry in one place
+- [x] Create `robby_control` package
+- [x] Implement the first custom wheel odometry node from wheel encoder and steer angle data
 
 ### In Progress
 
@@ -142,13 +170,11 @@ Use this section as the project tracker. Check items when done, leave notes besi
 ### Next TODOs
 
 - [ ] Add an RViz config file so the display comes up with a stable default setup
-- [ ] Create `robby_control` package
 - [ ] Create `robby_localization` package
 - [ ] Create `robby_gazebo` package
 - [ ] Create `robby_bringup` package
 - [ ] Add `ros2_control` interfaces to the robot model
 - [ ] Implement a custom swerve or 4-wheel-steer command node
-- [ ] Implement a custom wheel odometry node from wheel encoder and steer angle data
 - [ ] Add IMU topic integration
 - [ ] Add `robot_localization` EKF for odom plus IMU fusion
 - [ ] Spawn the robot in Gazebo
@@ -177,9 +203,9 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 The best next implementation step is:
 
-1. Create `robby_control`
-2. Implement the first custom `swerve_odometry_node`
-3. Create `robby_localization`
-4. Add IMU fusion using `robot_localization`
+1. Create `robby_localization`
+2. Add IMU fusion using `robot_localization`
+3. Create `robby_gazebo`
+4. Feed the odometry node from simulated joint states
 
 That gives us a clean path from model -> odometry -> localization -> digital twin.
