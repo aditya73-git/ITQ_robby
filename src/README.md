@@ -10,6 +10,8 @@ The long-term goal is to turn this into a digital twin for a 4-wheel-drive, 4-wh
 src/
 ├── README.md
 ├── robby_control/
+├── robby_gazebo/
+├── robby_localization/
 └── robby_description/
     ├── CMakeLists.txt
     ├── package.xml
@@ -30,13 +32,16 @@ This package is the current source of truth for the robot model.
 It contains:
 - The URDF exported from SolidWorks and cleaned up for ROS 2 use
 - A xacro source file that now acts as the main editable robot description
+- A separate Gazebo xacro overlay so sim and `ros2_control` stay out of the base robot file
 - The STL meshes used by RViz
 - A ROS 2 launch file for visualization
 - Basic package install rules so the URDF, meshes, and launch files are available after `colcon build`
 
 Main files:
 - `robby_description/urdf/Robby_v1.urdf`
+- `robby_description/urdf/Robby_v1.core.xacro`
 - `robby_description/urdf/Robby_v1.urdf.xacro`
+- `robby_description/urdf/Robby_v1.gazebo.xacro`
 - `robby_description/launch/display.launch.py`
 - `robby_description/CMakeLists.txt`
 - `robby_description/package.xml`
@@ -47,13 +52,50 @@ This package now contains the first control-side node for the digital twin.
 
 It currently contains:
 - A custom `swerve_odometry_node`
+- A simple `ackermann_cmd_node` for car-like `/cmd_vel` testing
+- A small bridge that turns Ackermann joint commands into live `/joint_states` for RViz testing
 - A launch file to run the odometry node
-- A YAML config file for wheel joint names, steer joint names, wheel positions, and wheel radius
+- Launch files for odometry, Ackermann command generation, and Ackermann RViz visualization
+- YAML config files for wheel joint names, steer joint names, wheel positions, wheel radius, and Ackermann parameters
 
 Main files:
 - `robby_control/robby_control/swerve_odometry_node.py`
+- `robby_control/robby_control/ackermann_cmd_node.py`
+- `robby_control/robby_control/ackermann_joint_state_bridge.py`
+- `robby_control/launch/ackermann.launch.py`
+- `robby_control/launch/ackermann_visualization.launch.py`
 - `robby_control/launch/odometry.launch.py`
+- `robby_control/config/ackermann_cmd.yaml`
+- `robby_control/config/ackermann_joint_state_bridge.yaml`
 - `robby_control/config/swerve_odometry.yaml`
+
+### `robby_gazebo`
+
+This package brings the robot into Gazebo Sim using `ros_gz_sim` and `gz_ros2_control`.
+
+It currently contains:
+- A minimal world file
+- A `ros2_control` controller config for steering and wheel joints
+- An Ackermann-focused simulation launch
+
+Main files:
+- `robby_gazebo/launch/sim_ackermann.launch.py`
+- `robby_gazebo/config/ros2_controllers.yaml`
+- `robby_gazebo/worlds/empty.world.sdf`
+
+### `robby_localization`
+
+This package contains the first localization stack for simulation and later hardware reuse.
+
+It currently contains:
+- An IMU preprocessor that fixes the IMU frame and fills in covariances when needed
+- A `robot_localization` EKF config that fuses wheel odometry with IMU data
+- A launch file for the sensor-fusion pipeline
+
+Main files:
+- `robby_localization/robby_localization/imu_preprocessor_node.py`
+- `robby_localization/config/ekf.yaml`
+- `robby_localization/launch/localization.launch.py`
 
 ## What Works Right Now
 
@@ -62,12 +104,18 @@ Main files:
 - The steering joint names and mesh names were cleaned up
 - The steering joints can now move in `joint_state_publisher_gui`
 - The steering range is set to `+-90 deg` for testing
-- A `world -> base_link` root was added so TF works better in RViz
 - A ROS 2 Python launch file is available for display
 - The robot description can now be generated from xacro
 - Wheelbase, track width, wheel radius, and steering geometry constants now live in xacro properties
 - The first custom swerve odometry node is implemented and builds cleanly
 - Collision geometry now uses simple boxes and cylinders instead of mesh collisions
+- Rear steering is now locked to zero for an Ackermann-style simplification path
+- A simple Ackermann `/cmd_vel` to joint-command node now exists
+- A bridge now exists to visualize Ackermann commands directly in RViz without manual sliders
+- Gazebo Sim bringup files now exist so the next phase can run through `ros2_control`
+- A simulated IMU now exists in Gazebo
+- The Gazebo launch now bridges IMU data into ROS
+- An EKF now fuses `/wheel/odom` and `/imu/data/filtered`
 
 Recommended launch command:
 
@@ -81,6 +129,34 @@ Recommended odometry launch command:
 ```bash
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_control odometry.launch.py
+```
+
+Recommended Ackermann command launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_control ackermann.launch.py
+```
+
+Recommended full Ackermann RViz test launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_control ackermann_visualization.launch.py
+```
+
+Recommended Gazebo Ackermann test launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_gazebo sim_ackermann.launch.py
+```
+
+Recommended localization-only launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_localization localization.launch.py
 ```
 
 ## Important Notes
@@ -130,13 +206,14 @@ This is the architecture we are aiming for next:
   - wheel and steer based odometry
   - future hardware or simulation interfaces
 - `robby_localization`
-  - wheel odometry
-  - IMU fusion
+  - IMU preprocessing
+  - wheel odometry + IMU fusion
   - `robot_localization` EKF setup
 - `robby_gazebo`
   - Gazebo world
   - robot spawn
   - simulated sensors and plugins
+  - `gz_ros2_control` integration
 - `robby_bringup`
   - full system launch files
   - sim bringup
@@ -153,7 +230,6 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [x] Fix missing RViz mesh loading issue
 - [x] Add install rules for `urdf/`, `meshes/`, and `launch/`
 - [x] Add a working ROS 2 display launch file
-- [x] Add `world -> base_link` transform in URDF
 - [x] Unlock steering joints and set steering range to `+-90 deg`
 - [x] Verify the robot is visible in RViz
 - [x] Verify wheel and steer joints can be moved from `joint_state_publisher_gui`
@@ -161,6 +237,14 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [x] Define wheel radius, track width, wheelbase, and steering geometry in one place
 - [x] Create `robby_control` package
 - [x] Implement the first custom wheel odometry node from wheel encoder and steer angle data
+- [x] Lock rear steering joints to zero for the Ackermann-style simplification path
+- [x] Create a first Ackermann `/cmd_vel` to joint-command node
+- [x] Add a bridge from Ackermann joint commands to `/joint_states` for RViz-only testing
+- [x] Create `robby_gazebo` package
+- [x] Add first Gazebo Sim bringup with `gz_ros2_control`
+- [x] Add a simulated IMU to Gazebo
+- [x] Create `robby_localization` package
+- [x] Add an EKF stack that fuses wheel odometry and IMU data
 
 ### In Progress
 
@@ -169,17 +253,10 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 ### Next TODOs
 
-- [ ] Add an RViz config file so the display comes up with a stable default setup
-- [ ] Create `robby_localization` package
-- [ ] Create `robby_gazebo` package
 - [ ] Create `robby_bringup` package
-- [ ] Add `ros2_control` interfaces to the robot model
-- [ ] Implement a custom swerve or 4-wheel-steer command node
-- [ ] Add IMU topic integration
-- [ ] Add `robot_localization` EKF for odom plus IMU fusion
-- [ ] Spawn the robot in Gazebo
-- [ ] Simulate IMU and wheel joint feedback in Gazebo
-- [ ] Publish `/odom` and proper TF chain for the digital twin
+- [ ] Verify the Gazebo bringup end-to-end and tune joint/controller settings
+- [ ] Tune EKF covariances and IMU noise against the simulated robot motion
+- [ ] Add more simulated sensors beyond wheel odom and IMU
 - [ ] Test holonomic sideways motion in simulation
 
 ### Later TODOs
@@ -203,8 +280,8 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 The best next implementation step is:
 
-1. Create `robby_localization`
-2. Add IMU fusion using `robot_localization`
+1. Verify the Gazebo bringup end-to-end with the new IMU and EKF stack
+2. Tune the EKF and IMU settings while driving the robot in simulation
 3. Create `robby_gazebo`
 4. Feed the odometry node from simulated joint states
 

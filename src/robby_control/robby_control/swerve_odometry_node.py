@@ -71,6 +71,8 @@ class ModuleGeometry:
 
 
 class SwerveOdometryNode(Node):
+    ODOMETRY_FAILURE_ERROR_THRESHOLD = 50
+
     def __init__(self) -> None:
         super().__init__("swerve_odometry_node")
 
@@ -124,6 +126,8 @@ class SwerveOdometryNode(Node):
         self.pose_y = 0.0
         self.pose_yaw = 0.0
         self.missing_joint_warning_sent = False
+        self.odometry_failure_count = 0
+        self.odometry_failure_error_logged = False
 
         self.odom_publisher = self.create_publisher(Odometry, self.odom_topic, 10)
         self.tf_broadcaster = TransformBroadcaster(self) if self.publish_tf else None
@@ -205,10 +209,22 @@ class SwerveOdometryNode(Node):
         try:
             delta_x_body, delta_y_body, delta_yaw = least_squares_body_delta(rows, wheel_travel)
         except ValueError as error:
-            self.get_logger().warning(f"Skipping odometry update: {error}")
+            self.odometry_failure_count += 1
+            if (
+                self.odometry_failure_count >= self.ODOMETRY_FAILURE_ERROR_THRESHOLD
+                and not self.odometry_failure_error_logged
+            ):
+                self.get_logger().error(
+                    "Odometry solve failed %d consecutive times; latest error: %s"
+                    % (self.odometry_failure_count, error)
+                )
+                self.odometry_failure_error_logged = True
             self.previous_drive_positions = drive_positions
             self.previous_stamp = stamp
             return
+
+        self.odometry_failure_count = 0
+        self.odometry_failure_error_logged = False
 
         heading = self.pose_yaw + 0.5 * delta_yaw
         cos_heading = math.cos(heading)
