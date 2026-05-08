@@ -12,6 +12,7 @@ setup(
         ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
         (f"share/{package_name}", ["package.xml"]),
         (f"share/{package_name}/config", ["config/ekf.yaml"]),
+        (f"share/{package_name}/config", ["config/localization_inputs.yaml"]),
         (f"share/{package_name}/launch", ["launch/evaluation.launch.py"]),
         (f"share/{package_name}/launch", ["launch/localization.launch.py"]),
     ],
@@ -23,7 +24,7 @@ setup(
     license="TODO: License declaration",
     entry_points={
         "console_scripts": [
-            "imu_preprocessor_node = robby_localization.imu_preprocessor_node:main",
+            "localization_input_node = robby_localization.localization_input_node:main",
             "state_error_monitor_node = robby_localization.state_error_monitor_node:main",
         ],
     },

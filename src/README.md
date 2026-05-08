@@ -57,7 +57,7 @@ It currently contains:
 - A small bridge that turns Ackermann joint commands into live `/joint_states` for RViz testing
 - A launch file to run the odometry node
 - Launch files for odometry, Ackermann command generation, and Ackermann RViz visualization
-- YAML config files for wheel joint names, steer joint names, wheel positions, wheel radius, and Ackermann parameters
+- YAML config files for wheel joint names, steer joint names, wheel positions, odometry calibration values, and Ackermann parameters
 
 Main files:
 - `robby_control/robby_control/swerve_odometry_node.py`
@@ -126,6 +126,7 @@ Main files:
 - The robot description can now be generated from xacro
 - Wheelbase, track width, wheel radius, and steering geometry constants now live in xacro properties
 - The first custom swerve odometry node is implemented and builds cleanly
+- The wheel odometry path now supports calibrated effective wheel radius and effective rear track width
 - Collision geometry now uses simple boxes and cylinders instead of mesh collisions
 - Rear steering is now locked to zero for an Ackermann-style simplification path
 - A simple Ackermann `/cmd_vel` to joint-command node now exists
@@ -219,6 +220,19 @@ The URDF currently uses absolute `file://` mesh paths instead of `package://` me
 
 This was done because RViz was still failing to resolve the package mesh resources in the active runtime session even after the package naming was corrected.
 
+### Odometry calibration note
+
+The robot model and the odometry model are related, but they are not exactly the same thing.
+
+- `robby_description` keeps the physical geometry from CAD and xacro
+- `robby_control/config/swerve_odometry.yaml` now also keeps odometry calibration values
+
+For wheel odometry, the most important calibrated values right now are:
+- `effective_wheel_radius`
+- `effective_rear_track_width`
+
+These are the values the odometry node should use to match measured robot motion, even if they differ slightly from the CAD dimensions. This is normal in both simulation tuning and real hardware bringup.
+
 The new xacro flow is a little better than the old hardcoded URDF because launch now injects the installed package mesh directory into the robot description at runtime.
 
 This works for this machine and the installed workspace layout, but it is still not the final portable solution.
@@ -304,6 +318,7 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 - [ ] Create `robby_bringup` package
 - [ ] Verify the Gazebo bringup end-to-end and tune joint/controller settings
+- [ ] Calibrate `effective_wheel_radius` and `effective_rear_track_width` against `/ground_truth/odom`
 - [ ] Tune EKF covariances and IMU noise against the simulated robot motion
 - [ ] Add more simulated sensors beyond wheel odom and IMU
 - [ ] Decide the future absolute reference path: GNSS, SLAM, landmarks, or multiple modes
@@ -313,7 +328,7 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 - [ ] Replace absolute mesh paths with portable `package://` or xacro-based paths
 - [ ] Add controllers for real hardware
-- [ ] Add calibration workflow for wheel radius and steering zero offsets
+- [ ] Add calibration workflow for per-wheel radius and steering zero offsets
 - [ ] Add navigation stack integration if needed
 - [ ] Add logging, diagnostics, and replay support
 - [ ] Add documentation for real robot bringup
@@ -330,9 +345,9 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 The best next implementation step is:
 
-1. Verify the Gazebo bringup end-to-end with the new IMU and EKF stack
-2. Tune the EKF and IMU settings while driving the robot in simulation
-3. Create `robby_gazebo`
-4. Feed the odometry node from simulated joint states
+1. Drive constant-radius circles in simulation and log `/ground_truth/odom` and `/wheel/odom`
+2. Tune `effective_wheel_radius` and `effective_rear_track_width` until raw wheel odom matches the circle radius well
+3. Tune the EKF and IMU settings after raw wheel odom is calibrated
+4. Carry the same calibration flow over to the real robot with encoder and IMU data
 
 That gives us a clean path from model -> odometry -> localization -> digital twin.

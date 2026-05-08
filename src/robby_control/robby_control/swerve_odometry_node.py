@@ -98,8 +98,10 @@ class SwerveOdometryNode(Node):
             ],
         )
         self.declare_parameter("wheel_radius", 0.052)
+        self.declare_parameter("effective_wheel_radius", 0.052)
         self.declare_parameter("drive_joint_multipliers", [1.0, -1.0, 1.0, -1.0])
         self.declare_parameter("odometry_mode", "ackermann")
+        self.declare_parameter("effective_rear_track_width", 0.33112)
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("odom_frame", "odom")
@@ -110,10 +112,14 @@ class SwerveOdometryNode(Node):
         self.steer_joint_names = list(self.get_parameter("steer_joint_names").value)
         wheel_positions = list(self.get_parameter("wheel_positions").value)
         self.wheel_radius = float(self.get_parameter("wheel_radius").value)
+        self.effective_wheel_radius = float(self.get_parameter("effective_wheel_radius").value)
         self.drive_joint_multipliers = [
             float(value) for value in self.get_parameter("drive_joint_multipliers").value
         ]
         self.odometry_mode = str(self.get_parameter("odometry_mode").value)
+        self.effective_rear_track_width = float(
+            self.get_parameter("effective_rear_track_width").value
+        )
         self.joint_state_topic = str(self.get_parameter("joint_state_topic").value)
         self.odom_topic = str(self.get_parameter("odom_topic").value)
         self.odom_frame = str(self.get_parameter("odom_frame").value)
@@ -134,6 +140,10 @@ class SwerveOdometryNode(Node):
             - sum(self.modules[index].x for index in self.rear_module_indices) / len(self.rear_module_indices)
         )
         self.track_width = max(module.y for module in self.modules) - min(module.y for module in self.modules)
+        self.rear_track_width = (
+            max(self.modules[index].y for index in self.rear_module_indices)
+            - min(self.modules[index].y for index in self.rear_module_indices)
+        )
 
         self.previous_drive_positions: Dict[str, float] = {}
         self.previous_stamp = None
@@ -154,7 +164,15 @@ class SwerveOdometryNode(Node):
         )
 
         self.get_logger().info(
-            "Swerve odometry node ready. Waiting for joint states on %s" % self.joint_state_topic
+            (
+                "Swerve odometry node ready. Waiting for joint states on %s. "
+                "Using effective_wheel_radius=%.6f m and effective_rear_track_width=%.6f m"
+            )
+            % (
+                self.joint_state_topic,
+                self.effective_wheel_radius,
+                self.effective_rear_track_width,
+            )
         )
 
     def _validate_parameters(self, wheel_positions: Sequence[float]) -> None:
@@ -166,6 +184,10 @@ class SwerveOdometryNode(Node):
             raise ValueError("drive_joint_multipliers must match drive_joint_names in length")
         if self.odometry_mode not in {"ackermann", "swerve"}:
             raise ValueError("odometry_mode must be either 'ackermann' or 'swerve'")
+        if self.effective_wheel_radius <= 0.0:
+            raise ValueError("effective_wheel_radius must be positive")
+        if self.effective_rear_track_width <= 0.0:
+            raise ValueError("effective_rear_track_width must be positive")
 
     def joint_state_callback(self, message: JointState) -> None:
         joint_indices = {name: index for index, name in enumerate(message.name)}
@@ -215,7 +237,7 @@ class SwerveOdometryNode(Node):
             self.modules,
         ):
             delta_rotation = drive_positions[drive_name] - self.previous_drive_positions[drive_name]
-            distance = delta_rotation * self.wheel_radius
+            distance = delta_rotation * self.effective_wheel_radius
             corrected_distance = distance * multiplier
             steer_angle = float(steer_positions[steer_name])
             cos_angle = math.cos(steer_angle)
@@ -338,7 +360,9 @@ class SwerveOdometryNode(Node):
         left_rear_distance = corrected_wheel_travel[left_rear_index]
         right_rear_distance = corrected_wheel_travel[right_rear_index]
         rear_center_distance = 0.5 * (left_rear_distance + right_rear_distance)
-        delta_yaw = (right_rear_distance - left_rear_distance) / self.track_width
+        delta_yaw = (
+            right_rear_distance - left_rear_distance
+        ) / self.effective_rear_track_width
         return rear_center_distance, 0.0, delta_yaw
 
 

@@ -123,21 +123,6 @@ def generate_launch_description():
         ],
     )
 
-    swerve_odometry_node = Node(
-        package="robby_control",
-        executable="swerve_odometry_node",
-        name="swerve_odometry_node",
-        output="screen",
-        parameters=[
-            str(control_share / "config" / "swerve_odometry.yaml"),
-            {
-                "use_sim_time": True,
-                "odom_topic": "/wheel/odom",
-                "publish_tf": False,
-            },
-        ],
-    )
-
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(str(localization_share / "launch" / "localization.launch.py"))
     )
@@ -166,7 +151,6 @@ def generate_launch_description():
             load_wheel_controller,
             ackermann_cmd_node,
             ackermann_controller_bridge,
-            swerve_odometry_node,
             localization,
             evaluation,
         ]

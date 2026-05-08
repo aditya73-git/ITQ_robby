@@ -8,18 +8,14 @@ from launch_ros.actions import Node
 def generate_launch_description():
     localization_share = Path(get_package_share_directory("robby_localization"))
 
-    imu_preprocessor = Node(
+    localization_input = Node(
         package="robby_localization",
-        executable="imu_preprocessor_node",
-        name="imu_preprocessor_node",
+        executable="localization_input_node",
+        name="localization_input_node",
         output="screen",
         parameters=[
-            {
-                "input_topic": "/imu/data",
-                "output_topic": "/imu/data/filtered",
-                "frame_id": "imu_link",
-                "use_sim_time": True,
-            }
+            str(localization_share / "config" / "localization_inputs.yaml"),
+            {"use_sim_time": True},
         ],
     )
 
@@ -31,4 +27,4 @@ def generate_launch_description():
         parameters=[str(localization_share / "config" / "ekf.yaml"), {"use_sim_time": True}],
     )
 
-    return LaunchDescription([imu_preprocessor, ekf_node])
+    return LaunchDescription([localization_input, ekf_node])
