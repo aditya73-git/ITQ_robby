@@ -6,11 +6,11 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 
 
-class AckermannControllerBridge(Node):
+class JointCommandBridge(Node):
     def __init__(self) -> None:
-        super().__init__("ackermann_controller_bridge")
+        super().__init__("joint_command_bridge")
 
-        self.declare_parameter("command_topic", "/ackermann_cmd_joint_states")
+        self.declare_parameter("command_topic", "/swerve_cmd_joint_states")
         self.declare_parameter("steering_command_topic", "/steering_position_controller/commands")
         self.declare_parameter("wheel_command_topic", "/wheel_velocity_controller/commands")
         self.declare_parameter(
@@ -50,7 +50,7 @@ class AckermannControllerBridge(Node):
         )
 
         self.get_logger().info(
-            "Ackermann controller bridge ready. %s -> [%s, %s]"
+            "Joint command bridge ready. %s -> [%s, %s]"
             % (self.command_topic, self.steering_command_topic, self.wheel_command_topic)
         )
 
@@ -82,7 +82,7 @@ class AckermannControllerBridge(Node):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    node = AckermannControllerBridge()
+    node = JointCommandBridge()
     try:
         rclpy.spin(node)
     finally:

@@ -1,6 +1,6 @@
-ackermann_controller_bridge:
+joint_command_bridge:
   ros__parameters:
-    command_topic: /ackermann_cmd_joint_states
+    command_topic: /swerve_cmd_joint_states
     steering_command_topic: /steering_position_controller/commands
     wheel_command_topic: /wheel_velocity_controller/commands
     steering_joint_names:

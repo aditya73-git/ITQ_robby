@@ -114,24 +114,24 @@ def generate_launch_description():
         output="screen",
     )
 
-    four_wis4wid_cmd_node = Node(
+    swerve_cmd_node = Node(
         package="robby_control",
-        executable="four_wis4wid_cmd_node",
-        name="four_wis4wid_cmd_node",
+        executable="swerve_cmd_node",
+        name="swerve_cmd_node",
         output="screen",
-        parameters=[str(control_share / "config" / "four_wis4wid_cmd.yaml"), {"use_sim_time": True}],
+        parameters=[str(control_share / "config" / "swerve_cmd.yaml"), {"use_sim_time": True}],
     )
 
-    controller_bridge = Node(
+    joint_command_bridge = Node(
         package="robby_control",
-        executable="ackermann_controller_bridge",
-        name="controller_bridge",
+        executable="joint_command_bridge",
+        name="joint_command_bridge",
         output="screen",
         parameters=[
-            str(control_share / "config" / "ackermann_controller_bridge.yaml"),
+            str(control_share / "config" / "joint_command_bridge.yaml"),
             {
                 "use_sim_time": True,
-                "command_topic": "/four_wis4wid_cmd_joint_states",
+                "command_topic": "/swerve_cmd_joint_states",
             },
         ],
     )
@@ -172,8 +172,8 @@ def generate_launch_description():
             load_joint_state_broadcaster,
             load_steering_controller,
             load_wheel_controller,
-            four_wis4wid_cmd_node,
-            controller_bridge,
+            swerve_cmd_node,
+            joint_command_bridge,
             localization,
             evaluation,
         ]

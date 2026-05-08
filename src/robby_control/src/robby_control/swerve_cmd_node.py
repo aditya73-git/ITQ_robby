@@ -10,16 +10,16 @@ from robby_control.controller import FourWIS4WIDKinematicController, Pose2D
 from robby_control.kinematic_model import BodyTwist, FourWIS4WIDKinematicModel
 
 
-class FourWIS4WIDCmdNode(Node):
+class SwerveCmdNode(Node):
     def __init__(self) -> None:
-        super().__init__("four_wis4wid_cmd_node")
+        super().__init__("swerve_cmd_node")
 
         self.declare_parameter("a", 0.203)
         self.declare_parameter("b", 0.16556)
         self.declare_parameter("wheel_radius", 0.052)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("joint_state_topic", "/joint_states")
-        self.declare_parameter("command_topic", "/four_wis4wid_cmd_joint_states")
+        self.declare_parameter("command_topic", "/swerve_cmd_joint_states")
         self.declare_parameter("steering_angle_limit", 1.5708)
         self.declare_parameter("max_wheel_angular_speed", 30.0)
         self.declare_parameter("kx", 4.0)
@@ -51,7 +51,7 @@ class FourWIS4WIDCmdNode(Node):
         self.drive_joint_names: List[str] = list(self.get_parameter("drive_joint_names").value)
 
         if len(self.steering_joint_names) != 4 or len(self.drive_joint_names) != 4:
-            raise ValueError("4WIS4WID command node expects exactly 4 steering and 4 drive joints")
+            raise ValueError("Swerve command node expects exactly 4 steering and 4 drive joints")
         if len(self.kd_gains) != 4:
             raise ValueError("kd_gains must contain exactly 4 values")
 
@@ -88,7 +88,7 @@ class FourWIS4WIDCmdNode(Node):
 
         self.get_logger().info(
             (
-                "4WIS4WID command node ready. cmd_vel=%s joint_states=%s command_topic=%s "
+                "Swerve command node ready. cmd_vel=%s joint_states=%s command_topic=%s "
                 "geometry(a=%.6f, b=%.6f, r=%.6f)"
             )
             % (
@@ -107,7 +107,7 @@ class FourWIS4WIDCmdNode(Node):
 
     def cmd_callback(self, message: Twist) -> None:
         if self.latest_joint_state is None:
-            self.get_logger().warning("Waiting for /joint_states before generating 4WIS4WID commands.")
+            self.get_logger().warning("Waiting for /joint_states before generating swerve commands.")
             return
 
         missing = [
@@ -171,7 +171,7 @@ class FourWIS4WIDCmdNode(Node):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    node = FourWIS4WIDCmdNode()
+    node = SwerveCmdNode()
     try:
         rclpy.spin(node)
     finally:

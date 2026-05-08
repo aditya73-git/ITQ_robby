@@ -7,14 +7,14 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     package_share = Path(get_package_share_directory("robby_control"))
-    config_path = package_share / "config" / "ackermann_cmd.yaml"
+    config_path = package_share / "config" / "swerve_cmd.yaml"
 
     return LaunchDescription(
         [
             Node(
                 package="robby_control",
-                executable="ackermann_cmd_node",
-                name="ackermann_cmd_node",
+                executable="swerve_cmd_node",
+                name="swerve_cmd_node",
                 parameters=[str(config_path)],
             ),
         ]

@@ -11,7 +11,7 @@ def generate_launch_description():
     localization_share = Path(get_package_share_directory("robby_localization"))
 
     sim_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(str(gazebo_share / "launch" / "sim_4wis4wid.launch.py")),
+        PythonLaunchDescriptionSource(str(gazebo_share / "launch" / "sim_swerve.launch.py")),
         launch_arguments={
             "use_lidar": "true",
             "use_camera": "true",

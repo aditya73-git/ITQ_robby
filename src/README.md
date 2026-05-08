@@ -31,16 +31,17 @@ src/
 This package is the current source of truth for the robot model.
 
 It contains:
-- The URDF exported from SolidWorks and cleaned up for ROS 2 use
-- A xacro source file that now acts as the main editable robot description
+- The cleaned ROS 2 xacro description that now acts as the source of truth for the robot model
 - A separate Gazebo xacro overlay so sim and `ros2_control` stay out of the base robot file
 - Reusable modular xacro overlays for lidar and camera sensors
 - The STL meshes used by RViz
 - A ROS 2 launch file for visualization
 - Basic package install rules so the URDF, meshes, and launch files are available after `colcon build`
 
+Legacy notes:
+- The old SolidWorks-exported `Robby_v1.urdf`, ROS 1 XML launch files, and exporter CSV were archived outside the workspace at `/home/aditya/ros2_ws/ITQ_robby_archived/2026-05-08_legacy_description_files/`
+
 Main files:
-- `robby_description/urdf/Robby_v1.urdf`
 - `robby_description/urdf/Robby_v1.core.xacro`
 - `robby_description/urdf/Robby_v1.urdf.xacro`
 - `robby_description/urdf/Robby_v1.gazebo.xacro`
@@ -57,29 +58,22 @@ This package now contains the first control-side node for the digital twin.
 It currently contains:
 - A reusable 4WIS4WID kinematic model from the Lee and Li paper
 - A paper-based non-linear kinematic controller
-- A custom `swerve_odometry_node`
-- A simple `ackermann_cmd_node` for car-like `/cmd_vel` testing
-- A full `four_wis4wid_cmd_node` for independent 4-wheel steering and drive commands
-- A small bridge that turns Ackermann joint commands into live `/joint_states` for RViz testing
-- A launch file to run the odometry node
-- Launch files for odometry, Ackermann command generation, 4WIS4WID command generation, and Ackermann RViz visualization
-- YAML config files for wheel joint names, steer joint names, wheel positions, odometry calibration values, Ackermann parameters, and 4WIS4WID controller parameters
+- A full `swerve_cmd_node` for independent 4-wheel steering and drive commands
+- A joint-command bridge that forwards controller commands into `ros2_control`
+- A launch file for the swerve command path
+- YAML config files for the swerve controller and controller bridge
+
+Legacy notes:
+- The older Ackermann test stack and standalone `swerve_odometry_node` path were archived outside the workspace to keep the active stack focused.
 
 Main files:
-- `robby_control/robby_control/swerve_odometry_node.py`
-- `robby_control/robby_control/kinematic_model.py`
-- `robby_control/robby_control/controller.py`
-- `robby_control/robby_control/ackermann_cmd_node.py`
-- `robby_control/robby_control/four_wis4wid_cmd_node.py`
-- `robby_control/robby_control/ackermann_joint_state_bridge.py`
-- `robby_control/launch/ackermann.launch.py`
-- `robby_control/launch/four_wis4wid.launch.py`
-- `robby_control/launch/ackermann_visualization.launch.py`
-- `robby_control/launch/odometry.launch.py`
-- `robby_control/config/ackermann_cmd.yaml`
-- `robby_control/config/four_wis4wid_cmd.yaml`
-- `robby_control/config/ackermann_joint_state_bridge.yaml`
-- `robby_control/config/swerve_odometry.yaml`
+- `robby_control/src/robby_control/kinematic_model.py`
+- `robby_control/src/robby_control/controller.py`
+- `robby_control/src/robby_control/swerve_cmd_node.py`
+- `robby_control/src/robby_control/joint_command_bridge.py`
+- `robby_control/launch/swerve.launch.py`
+- `robby_control/config/swerve_cmd.yaml`
+- `robby_control/config/joint_command_bridge.yaml`
 
 ### `robby_gazebo`
 
@@ -88,14 +82,15 @@ This package brings the robot into Gazebo Sim using `ros_gz_sim` and `gz_ros2_co
 It currently contains:
 - A minimal world file
 - A `ros2_control` controller config for steering and wheel joints
-- An Ackermann-focused simulation launch
-- A full 4WIS4WID simulation launch
-- A 4WIS4WID mapping launch with lidar and `slam_toolbox`
+- A full swerve simulation launch
+- A swerve mapping launch with lidar and `slam_toolbox`
+
+Legacy notes:
+- The older Ackermann simulation launch was archived outside the workspace.
 
 Main files:
-- `robby_gazebo/launch/sim_ackermann.launch.py`
-- `robby_gazebo/launch/sim_4wis4wid.launch.py`
-- `robby_gazebo/launch/sim_4wis4wid_mapping.launch.py`
+- `robby_gazebo/launch/sim_swerve.launch.py`
+- `robby_gazebo/launch/sim_swerve_mapping.launch.py`
 - `robby_gazebo/config/ros2_controllers.yaml`
 - `robby_gazebo/worlds/empty.world.sdf`
 
@@ -111,8 +106,8 @@ It currently contains:
 - A `slam_toolbox` mapping config and launch
 
 Main files:
-- `robby_localization/robby_localization/localization_input_node.py`
-- `robby_localization/robby_localization/state_error_monitor_node.py`
+- `robby_localization/src/robby_localization/localization_input_node.py`
+- `robby_localization/src/robby_localization/state_error_monitor_node.py`
 - `robby_localization/config/ekf.yaml`
 - `robby_localization/config/slam_toolbox.yaml`
 - `robby_localization/launch/evaluation.launch.py`
@@ -129,8 +124,8 @@ It currently contains:
 - A small launch file to start the logger
 
 Main files:
-- `robby_debug/robby_debug/debug_log_node.py`
-- `robby_debug/robby_debug/plot_debug_csv.py`
+- `robby_debug/src/robby_debug/debug_log_node.py`
+- `robby_debug/src/robby_debug/plot_debug_csv.py`
 - `robby_debug/launch/debug_tools.launch.py`
 
 ## What Works Right Now
@@ -148,7 +143,7 @@ Main files:
 - Collision geometry now uses simple boxes and cylinders instead of mesh collisions
 - A `base_footprint` ground-contact frame now exists below `base_link`
 - A simple Ackermann `/cmd_vel` to joint-command node now exists
-- A full 4WIS4WID `/cmd_vel` to 8-joint command node now exists
+- A full swerve `/cmd_vel` to 8-joint command node now exists
 - The paper-based kinematic model and controller are implemented in `robby_control`
 - A bridge now exists to visualize Ackermann commands directly in RViz without manual sliders
 - Gazebo Sim bringup files now exist so the next phase can run through `ros2_control`
@@ -167,46 +162,18 @@ source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_description display.launch.py
 ```
 
-Recommended odometry launch command:
+Recommended Gazebo swerve test launch command:
 
 ```bash
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_control odometry.launch.py
+ros2 launch robby_gazebo sim_swerve.launch.py
 ```
 
-Recommended Ackermann command launch command:
+Recommended Gazebo swerve mapping launch command:
 
 ```bash
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_control ackermann.launch.py
-```
-
-Recommended full Ackermann RViz test launch command:
-
-```bash
-source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_control ackermann_visualization.launch.py
-```
-
-Recommended Gazebo Ackermann test launch command:
-
-```bash
-source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_gazebo sim_ackermann.launch.py
-```
-
-Recommended Gazebo 4WIS4WID test launch command:
-
-```bash
-source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_gazebo sim_4wis4wid.launch.py
-```
-
-Recommended Gazebo 4WIS4WID mapping launch command:
-
-```bash
-source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_gazebo sim_4wis4wid_mapping.launch.py
+ros2 launch robby_gazebo sim_swerve_mapping.launch.py
 ```
 
 Recommended localization-only launch command:
@@ -268,7 +235,7 @@ This was done because RViz was still failing to resolve the package mesh resourc
 The robot model and the odometry model are related, but they are not exactly the same thing.
 
 - `robby_description` keeps the physical geometry from CAD and xacro
-- `robby_control/config/swerve_odometry.yaml` now also keeps odometry calibration values
+- `robby_localization/config/localization_inputs.yaml` now keeps the active wheel-odometry calibration values
 
 For wheel odometry, the most important calibrated values right now are:
 - `effective_wheel_radius`
