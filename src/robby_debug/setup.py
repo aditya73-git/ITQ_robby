@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 
-package_name = "robby_localization"
+package_name = "robby_debug"
 
 
 setup(
@@ -11,20 +11,18 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
         (f"share/{package_name}", ["package.xml"]),
-        (f"share/{package_name}/config", ["config/ekf.yaml"]),
-        (f"share/{package_name}/launch", ["launch/evaluation.launch.py"]),
-        (f"share/{package_name}/launch", ["launch/localization.launch.py"]),
+        (f"share/{package_name}/launch", ["launch/debug_tools.launch.py"]),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="aditya",
     maintainer_email="kotteaditya919@gmail.com",
-    description="Localization and sensor fusion nodes for the ITQ Robby platform.",
+    description="Debugging, logging, and plotting tools for the ITQ Robby workspace.",
     license="TODO: License declaration",
     entry_points={
         "console_scripts": [
-            "imu_preprocessor_node = robby_localization.imu_preprocessor_node:main",
-            "state_error_monitor_node = robby_localization.state_error_monitor_node:main",
+            "debug_log_node = robby_debug.debug_log_node:main",
+            "plot_debug_csv = robby_debug.plot_debug_csv:main",
         ],
     },
 )

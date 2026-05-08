@@ -59,6 +59,7 @@ def generate_launch_description():
         arguments=[
             "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
             "/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU",
+            "/ground_truth/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry",
         ],
     )
 
@@ -140,6 +141,9 @@ def generate_launch_description():
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(str(localization_share / "launch" / "localization.launch.py"))
     )
+    evaluation = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(str(localization_share / "launch" / "evaluation.launch.py"))
+    )
 
     load_joint_state_broadcaster = RegisterEventHandler(
         OnProcessExit(target_action=spawn_robot, on_exit=[joint_state_broadcaster])
@@ -164,5 +168,6 @@ def generate_launch_description():
             ackermann_controller_bridge,
             swerve_odometry_node,
             localization,
+            evaluation,
         ]
     )

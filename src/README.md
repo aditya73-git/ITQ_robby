@@ -9,6 +9,7 @@ The long-term goal is to turn this into a digital twin for a 4-wheel-drive, 4-wh
 ```text
 src/
 ├── README.md
+├── robby_debug/
 ├── robby_control/
 ├── robby_gazebo/
 ├── robby_localization/
@@ -90,12 +91,29 @@ This package contains the first localization stack for simulation and later hard
 It currently contains:
 - An IMU preprocessor that fixes the IMU frame and fills in covariances when needed
 - A `robot_localization` EKF config that fuses wheel odometry with IMU data
+- A state error monitor that compares a reference odometry source against the filtered estimate
 - A launch file for the sensor-fusion pipeline
 
 Main files:
 - `robby_localization/robby_localization/imu_preprocessor_node.py`
+- `robby_localization/robby_localization/state_error_monitor_node.py`
 - `robby_localization/config/ekf.yaml`
+- `robby_localization/launch/evaluation.launch.py`
 - `robby_localization/launch/localization.launch.py`
+
+### `robby_debug`
+
+This package is the workspace toolbox for logging, plotting, and one-off debugging scripts.
+
+It currently contains:
+- A live CSV logger for ground truth, wheel odometry, EKF output, command input, and estimation error
+- A simple offline plotting script for trajectories and error curves
+- A small launch file to start the logger
+
+Main files:
+- `robby_debug/robby_debug/debug_log_node.py`
+- `robby_debug/robby_debug/plot_debug_csv.py`
+- `robby_debug/launch/debug_tools.launch.py`
 
 ## What Works Right Now
 
@@ -116,6 +134,8 @@ Main files:
 - A simulated IMU now exists in Gazebo
 - The Gazebo launch now bridges IMU data into ROS
 - An EKF now fuses `/wheel/odom` and `/imu/data/filtered`
+- Gazebo now publishes `/ground_truth/odom` as a reference source for evaluation
+- A monitor now compares `/ground_truth/odom` against `/odometry/filtered`
 
 Recommended launch command:
 
@@ -158,6 +178,27 @@ Recommended localization-only launch command:
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_localization localization.launch.py
 ```
+
+Recommended debug logger launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_debug debug_tools.launch.py
+```
+
+Recommended offline plot command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 run robby_debug plot_debug_csv /home/aditya/ros2_ws/ITQ_robby/debug_logs/<log_name>.csv
+```
+
+Reference evaluation is started automatically by the Gazebo sim launch. It compares:
+- `/ground_truth/odom`
+- `/odometry/filtered`
+
+and publishes:
+- `/state_estimation/error`
 
 ## Important Notes
 
@@ -218,6 +259,10 @@ This is the architecture we are aiming for next:
   - full system launch files
   - sim bringup
   - real robot bringup later
+- `robby_debug`
+  - CSV loggers
+  - plotting scripts
+  - quick diagnostics
 
 ## TODO Tracker
 
@@ -245,6 +290,10 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [x] Add a simulated IMU to Gazebo
 - [x] Create `robby_localization` package
 - [x] Add an EKF stack that fuses wheel odometry and IMU data
+- [x] Add a Gazebo ground-truth reference odometry topic
+- [x] Create `robby_debug` package
+- [x] Add CSV logging and offline plotting tools
+- [x] Add a state estimation error monitor for sim evaluation
 
 ### In Progress
 
@@ -257,6 +306,7 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [ ] Verify the Gazebo bringup end-to-end and tune joint/controller settings
 - [ ] Tune EKF covariances and IMU noise against the simulated robot motion
 - [ ] Add more simulated sensors beyond wheel odom and IMU
+- [ ] Decide the future absolute reference path: GNSS, SLAM, landmarks, or multiple modes
 - [ ] Test holonomic sideways motion in simulation
 
 ### Later TODOs
