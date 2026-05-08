@@ -63,7 +63,7 @@ class LocalizationInputNode(Node):
         self.declare_parameter("effective_wheel_radius", 0.052)
         self.declare_parameter("drive_joint_multipliers", [1.0, 1.0, -1.0, -1.0])
         self.declare_parameter("odom_frame", "odom")
-        self.declare_parameter("base_frame", "base_link")
+        self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("publish_tf", False)
 
         self.imu_input_topic = str(self.get_parameter("imu_input_topic").value)

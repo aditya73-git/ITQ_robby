@@ -2,11 +2,11 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
-import xacro
 
 
 def generate_launch_description():
@@ -20,15 +20,23 @@ def generate_launch_description():
     mesh_dir = description_share / "meshes"
     controllers_file = gazebo_share / "config" / "ros2_controllers.yaml"
     world_file = gazebo_share / "worlds" / "empty.world.sdf"
+    use_lidar = LaunchConfiguration("use_lidar")
+    use_camera = LaunchConfiguration("use_camera")
 
-    robot_description = xacro.process_file(
-        str(xacro_path),
-        mappings={
-            "mesh_dir": str(mesh_dir),
-            "use_gz_ros2_control": "true",
-            "controllers_file": str(controllers_file),
-        },
-    ).toxml()
+    robot_description = Command(
+        [
+            "xacro ",
+            str(xacro_path),
+            " mesh_dir:=",
+            str(mesh_dir),
+            " controllers_file:=",
+            str(controllers_file),
+            " use_lidar:=",
+            use_lidar,
+            " use_camera:=",
+            use_camera,
+        ]
+    )
 
     robot_state_publisher = Node(
         package="robot_state_publisher",
@@ -60,6 +68,8 @@ def generate_launch_description():
             "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
             "/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU",
             "/ground_truth/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry",
+            "/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
+            "/camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image",
         ],
     )
 
@@ -142,6 +152,16 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "use_lidar",
+                default_value="false",
+                description="Enable the modular 2D lidar overlay and bridge /scan.",
+            ),
+            DeclareLaunchArgument(
+                "use_camera",
+                default_value="false",
+                description="Enable the modular camera overlay and bridge /camera/image_raw.",
+            ),
             gazebo,
             sim_bridge,
             robot_state_publisher,

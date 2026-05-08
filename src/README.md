@@ -34,6 +34,7 @@ It contains:
 - The URDF exported from SolidWorks and cleaned up for ROS 2 use
 - A xacro source file that now acts as the main editable robot description
 - A separate Gazebo xacro overlay so sim and `ros2_control` stay out of the base robot file
+- Reusable modular xacro overlays for lidar and camera sensors
 - The STL meshes used by RViz
 - A ROS 2 launch file for visualization
 - Basic package install rules so the URDF, meshes, and launch files are available after `colcon build`
@@ -43,6 +44,8 @@ Main files:
 - `robby_description/urdf/Robby_v1.core.xacro`
 - `robby_description/urdf/Robby_v1.urdf.xacro`
 - `robby_description/urdf/Robby_v1.gazebo.xacro`
+- `robby_description/urdf/Robby_v1.lidar.xacro`
+- `robby_description/urdf/Robby_v1.camera.xacro`
 - `robby_description/launch/display.launch.py`
 - `robby_description/CMakeLists.txt`
 - `robby_description/package.xml`
@@ -52,21 +55,29 @@ Main files:
 This package now contains the first control-side node for the digital twin.
 
 It currently contains:
+- A reusable 4WIS4WID kinematic model from the Lee and Li paper
+- A paper-based non-linear kinematic controller
 - A custom `swerve_odometry_node`
 - A simple `ackermann_cmd_node` for car-like `/cmd_vel` testing
+- A full `four_wis4wid_cmd_node` for independent 4-wheel steering and drive commands
 - A small bridge that turns Ackermann joint commands into live `/joint_states` for RViz testing
 - A launch file to run the odometry node
-- Launch files for odometry, Ackermann command generation, and Ackermann RViz visualization
-- YAML config files for wheel joint names, steer joint names, wheel positions, odometry calibration values, and Ackermann parameters
+- Launch files for odometry, Ackermann command generation, 4WIS4WID command generation, and Ackermann RViz visualization
+- YAML config files for wheel joint names, steer joint names, wheel positions, odometry calibration values, Ackermann parameters, and 4WIS4WID controller parameters
 
 Main files:
 - `robby_control/robby_control/swerve_odometry_node.py`
+- `robby_control/robby_control/kinematic_model.py`
+- `robby_control/robby_control/controller.py`
 - `robby_control/robby_control/ackermann_cmd_node.py`
+- `robby_control/robby_control/four_wis4wid_cmd_node.py`
 - `robby_control/robby_control/ackermann_joint_state_bridge.py`
 - `robby_control/launch/ackermann.launch.py`
+- `robby_control/launch/four_wis4wid.launch.py`
 - `robby_control/launch/ackermann_visualization.launch.py`
 - `robby_control/launch/odometry.launch.py`
 - `robby_control/config/ackermann_cmd.yaml`
+- `robby_control/config/four_wis4wid_cmd.yaml`
 - `robby_control/config/ackermann_joint_state_bridge.yaml`
 - `robby_control/config/swerve_odometry.yaml`
 
@@ -78,9 +89,13 @@ It currently contains:
 - A minimal world file
 - A `ros2_control` controller config for steering and wheel joints
 - An Ackermann-focused simulation launch
+- A full 4WIS4WID simulation launch
+- A 4WIS4WID mapping launch with lidar and `slam_toolbox`
 
 Main files:
 - `robby_gazebo/launch/sim_ackermann.launch.py`
+- `robby_gazebo/launch/sim_4wis4wid.launch.py`
+- `robby_gazebo/launch/sim_4wis4wid_mapping.launch.py`
 - `robby_gazebo/config/ros2_controllers.yaml`
 - `robby_gazebo/worlds/empty.world.sdf`
 
@@ -89,17 +104,20 @@ Main files:
 This package contains the first localization stack for simulation and later hardware reuse.
 
 It currently contains:
-- An IMU preprocessor that fixes the IMU frame and fills in covariances when needed
+- A localization input node that preprocesses IMU data and computes wheel odometry from joint states using the paper-based kinematic model
 - A `robot_localization` EKF config that fuses wheel odometry with IMU data
 - A state error monitor that compares a reference odometry source against the filtered estimate
 - A launch file for the sensor-fusion pipeline
+- A `slam_toolbox` mapping config and launch
 
 Main files:
-- `robby_localization/robby_localization/imu_preprocessor_node.py`
+- `robby_localization/robby_localization/localization_input_node.py`
 - `robby_localization/robby_localization/state_error_monitor_node.py`
 - `robby_localization/config/ekf.yaml`
+- `robby_localization/config/slam_toolbox.yaml`
 - `robby_localization/launch/evaluation.launch.py`
 - `robby_localization/launch/localization.launch.py`
+- `robby_localization/launch/slam_mapping.launch.py`
 
 ### `robby_debug`
 
@@ -128,15 +146,19 @@ Main files:
 - The first custom swerve odometry node is implemented and builds cleanly
 - The wheel odometry path now supports calibrated effective wheel radius and effective rear track width
 - Collision geometry now uses simple boxes and cylinders instead of mesh collisions
-- Rear steering is now locked to zero for an Ackermann-style simplification path
+- A `base_footprint` ground-contact frame now exists below `base_link`
 - A simple Ackermann `/cmd_vel` to joint-command node now exists
+- A full 4WIS4WID `/cmd_vel` to 8-joint command node now exists
+- The paper-based kinematic model and controller are implemented in `robby_control`
 - A bridge now exists to visualize Ackermann commands directly in RViz without manual sliders
 - Gazebo Sim bringup files now exist so the next phase can run through `ros2_control`
 - A simulated IMU now exists in Gazebo
+- Optional modular 2D lidar and camera sensors now exist in the robot description and Gazebo overlay
 - The Gazebo launch now bridges IMU data into ROS
 - An EKF now fuses `/wheel/odom` and `/imu/data/filtered`
 - Gazebo now publishes `/ground_truth/odom` as a reference source for evaluation
 - A monitor now compares `/ground_truth/odom` against `/odometry/filtered`
+- `slam_toolbox` now produces a 2D map from `/scan`
 
 Recommended launch command:
 
@@ -173,11 +195,32 @@ source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_gazebo sim_ackermann.launch.py
 ```
 
+Recommended Gazebo 4WIS4WID test launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_gazebo sim_4wis4wid.launch.py
+```
+
+Recommended Gazebo 4WIS4WID mapping launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_gazebo sim_4wis4wid_mapping.launch.py
+```
+
 Recommended localization-only launch command:
 
 ```bash
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 launch robby_localization localization.launch.py
+```
+
+Recommended SLAM mapping-only launch command:
+
+```bash
+source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
+ros2 launch robby_localization slam_mapping.launch.py
 ```
 
 Recommended debug logger launch command:
@@ -246,7 +289,7 @@ The robot is being treated as:
 
 This means:
 - `diff_drive_controller` is not the right controller
-- A simple Ackermann setup is also not enough if all 4 wheels steer independently
+- A simple Ackermann setup is only a temporary test mode
 - We will likely need custom swerve-style kinematics, odometry, and command handling
 
 ## Suggested Future Package Split
@@ -308,6 +351,13 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [x] Create `robby_debug` package
 - [x] Add CSV logging and offline plotting tools
 - [x] Add a state estimation error monitor for sim evaluation
+- [x] Implement the paper-based 4WIS4WID kinematic model
+- [x] Implement the paper-based outer-loop kinematic controller
+- [x] Add a full 4WIS4WID command node and sim launch
+- [x] Unlock rear steering again for full 4-wheel-steering operation
+- [x] Add modular lidar and camera xacro overlays
+- [x] Add `slam_toolbox` mapping from `/scan`
+- [x] Add `base_footprint` as the ground-contact frame
 
 ### In Progress
 
@@ -320,9 +370,9 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [ ] Verify the Gazebo bringup end-to-end and tune joint/controller settings
 - [ ] Calibrate `effective_wheel_radius` and `effective_rear_track_width` against `/ground_truth/odom`
 - [ ] Tune EKF covariances and IMU noise against the simulated robot motion
-- [ ] Add more simulated sensors beyond wheel odom and IMU
+- [ ] Add Nav2 on top of the current map, odom, and control stack
 - [ ] Decide the future absolute reference path: GNSS, SLAM, landmarks, or multiple modes
-- [ ] Test holonomic sideways motion in simulation
+- [ ] Test holonomic sideways motion and pure lateral control in simulation
 
 ### Later TODOs
 
@@ -330,6 +380,7 @@ Use this section as the project tracker. Check items when done, leave notes besi
 - [ ] Add controllers for real hardware
 - [ ] Add calibration workflow for per-wheel radius and steering zero offsets
 - [ ] Add navigation stack integration if needed
+- [ ] Add 3D sensing or depth fusion if 2D lidar is not sufficient for the target environment
 - [ ] Add logging, diagnostics, and replay support
 - [ ] Add documentation for real robot bringup
 
@@ -345,9 +396,9 @@ Use this section as the project tracker. Check items when done, leave notes besi
 
 The best next implementation step is:
 
-1. Drive constant-radius circles in simulation and log `/ground_truth/odom` and `/wheel/odom`
-2. Tune `effective_wheel_radius` and `effective_rear_track_width` until raw wheel odom matches the circle radius well
-3. Tune the EKF and IMU settings after raw wheel odom is calibrated
-4. Carry the same calibration flow over to the real robot with encoder and IMU data
+1. Build a simple obstacle world so 2D lidar mapping has meaningful structure
+2. Verify `slam_toolbox` map creation and save a first map
+3. Add Nav2 using the current `map -> odom -> base_footprint` frame chain
+4. Connect Nav2 `/cmd_vel` output to the 4WIS4WID command path
 
-That gives us a clean path from model -> odometry -> localization -> digital twin.
+That gives us a clean path from model -> odometry -> localization -> mapping -> navigation.

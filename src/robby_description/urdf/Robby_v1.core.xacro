@@ -123,8 +123,17 @@
     <xacro:property name="back_left_wheel_rpy" value="-1.5708 0 0.0099427" />
     <xacro:property name="back_right_wheel_rpy" value="-1.5708 0 -0.0078748" />
     <xacro:property name="front_right_wheel_rpy" value="-1.5708 0 -0.0087292" />
+    <xacro:property name="base_footprint_to_base_link_z" value="0.1478" />
+
+    <link name="base_footprint" />
 
     <link name="base_link" />
+
+    <joint name="base_footprint_joint" type="fixed">
+      <origin xyz="0 0 ${base_footprint_to_base_link_z}" rpy="0 0 0" />
+      <parent link="base_footprint" />
+      <child link="base_link" />
+    </joint>
 
     <xacro:mesh_box_link
       name="chassis_link"
