@@ -98,6 +98,8 @@ class SwerveOdometryNode(Node):
             ],
         )
         self.declare_parameter("wheel_radius", 0.052)
+        self.declare_parameter("drive_joint_multipliers", [1.0, -1.0, 1.0, -1.0])
+        self.declare_parameter("odometry_mode", "ackermann")
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("odom_frame", "odom")
@@ -108,6 +110,10 @@ class SwerveOdometryNode(Node):
         self.steer_joint_names = list(self.get_parameter("steer_joint_names").value)
         wheel_positions = list(self.get_parameter("wheel_positions").value)
         self.wheel_radius = float(self.get_parameter("wheel_radius").value)
+        self.drive_joint_multipliers = [
+            float(value) for value in self.get_parameter("drive_joint_multipliers").value
+        ]
+        self.odometry_mode = str(self.get_parameter("odometry_mode").value)
         self.joint_state_topic = str(self.get_parameter("joint_state_topic").value)
         self.odom_topic = str(self.get_parameter("odom_topic").value)
         self.odom_frame = str(self.get_parameter("odom_frame").value)
@@ -119,6 +125,15 @@ class SwerveOdometryNode(Node):
             ModuleGeometry(x=wheel_positions[index], y=wheel_positions[index + 1])
             for index in range(0, len(wheel_positions), 2)
         ]
+        self.front_module_indices = [index for index, module in enumerate(self.modules) if module.x > 0.0]
+        self.rear_module_indices = [index for index, module in enumerate(self.modules) if module.x < 0.0]
+        if not self.front_module_indices or not self.rear_module_indices:
+            raise ValueError("Expected wheel positions to contain both front and rear modules")
+        self.wheelbase = (
+            sum(self.modules[index].x for index in self.front_module_indices) / len(self.front_module_indices)
+            - sum(self.modules[index].x for index in self.rear_module_indices) / len(self.rear_module_indices)
+        )
+        self.track_width = max(module.y for module in self.modules) - min(module.y for module in self.modules)
 
         self.previous_drive_positions: Dict[str, float] = {}
         self.previous_stamp = None
@@ -147,6 +162,10 @@ class SwerveOdometryNode(Node):
             raise ValueError("Expected exactly 4 drive joints and 4 steer joints")
         if len(wheel_positions) != 8:
             raise ValueError("wheel_positions must contain 8 values: x1 y1 x2 y2 x3 y3 x4 y4")
+        if len(self.drive_joint_multipliers) != len(self.drive_joint_names):
+            raise ValueError("drive_joint_multipliers must match drive_joint_names in length")
+        if self.odometry_mode not in {"ackermann", "swerve"}:
+            raise ValueError("odometry_mode must be either 'ackermann' or 'swerve'")
 
     def joint_state_callback(self, message: JointState) -> None:
         joint_indices = {name: index for index, name in enumerate(message.name)}
@@ -187,14 +206,18 @@ class SwerveOdometryNode(Node):
 
         rows = []
         wheel_travel = []
-        for drive_name, steer_name, module in zip(
+        corrected_wheel_travel = []
+        steer_angles = []
+        for drive_name, steer_name, multiplier, module in zip(
             self.drive_joint_names,
             self.steer_joint_names,
+            self.drive_joint_multipliers,
             self.modules,
         ):
             delta_rotation = drive_positions[drive_name] - self.previous_drive_positions[drive_name]
             distance = delta_rotation * self.wheel_radius
-            steer_angle = steer_positions[steer_name]
+            corrected_distance = distance * multiplier
+            steer_angle = float(steer_positions[steer_name])
             cos_angle = math.cos(steer_angle)
             sin_angle = math.sin(steer_angle)
             rows.append(
@@ -205,23 +228,38 @@ class SwerveOdometryNode(Node):
                 )
             )
             wheel_travel.append(distance)
+            corrected_wheel_travel.append(corrected_distance)
+            steer_angles.append(steer_angle)
 
-        try:
-            delta_x_body, delta_y_body, delta_yaw = least_squares_body_delta(rows, wheel_travel)
-        except ValueError as error:
-            self.odometry_failure_count += 1
-            if (
-                self.odometry_failure_count >= self.ODOMETRY_FAILURE_ERROR_THRESHOLD
-                and not self.odometry_failure_error_logged
-            ):
-                self.get_logger().error(
-                    "Odometry solve failed %d consecutive times; latest error: %s"
-                    % (self.odometry_failure_count, error)
+        if self.odometry_mode == "ackermann":
+            fallback = self.compute_ackermann_fallback(corrected_wheel_travel)
+            if fallback is None:
+                self.previous_drive_positions = drive_positions
+                self.previous_stamp = stamp
+                return
+            delta_x_body, delta_y_body, delta_yaw = fallback
+        else:
+            try:
+                delta_x_body, delta_y_body, delta_yaw = least_squares_body_delta(
+                    rows, corrected_wheel_travel
                 )
-                self.odometry_failure_error_logged = True
-            self.previous_drive_positions = drive_positions
-            self.previous_stamp = stamp
-            return
+            except ValueError as error:
+                fallback = self.compute_ackermann_fallback(corrected_wheel_travel)
+                if fallback is None:
+                    self.odometry_failure_count += 1
+                    if (
+                        self.odometry_failure_count >= self.ODOMETRY_FAILURE_ERROR_THRESHOLD
+                        and not self.odometry_failure_error_logged
+                    ):
+                        self.get_logger().error(
+                            "Odometry solve failed %d consecutive times; latest error: %s"
+                            % (self.odometry_failure_count, error)
+                        )
+                        self.odometry_failure_error_logged = True
+                    self.previous_drive_positions = drive_positions
+                    self.previous_stamp = stamp
+                    return
+                delta_x_body, delta_y_body, delta_yaw = fallback
 
         self.odometry_failure_count = 0
         self.odometry_failure_error_logged = False
@@ -285,6 +323,23 @@ class SwerveOdometryNode(Node):
         transform.transform.translation.z = 0.0
         transform.transform.rotation = quaternion
         self.tf_broadcaster.sendTransform(transform)
+
+    def compute_ackermann_fallback(
+        self,
+        corrected_wheel_travel: Sequence[float],
+    ) -> Tuple[float, float, float] | None:
+        if not self.front_module_indices or not self.rear_module_indices:
+            return None
+
+        rear_index_by_side = sorted(self.rear_module_indices, key=lambda index: self.modules[index].y, reverse=True)
+        if len(rear_index_by_side) != 2:
+            return None
+        left_rear_index, right_rear_index = rear_index_by_side
+        left_rear_distance = corrected_wheel_travel[left_rear_index]
+        right_rear_distance = corrected_wheel_travel[right_rear_index]
+        rear_center_distance = 0.5 * (left_rear_distance + right_rear_distance)
+        delta_yaw = (right_rear_distance - left_rear_distance) / self.track_width
+        return rear_center_distance, 0.0, delta_yaw
 
 
 def main(args=None) -> None:

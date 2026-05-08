@@ -86,22 +86,39 @@ class AckermannCmdNode(Node):
             rear_left_speed = wheel_angular_velocity
             rear_right_speed = wheel_angular_velocity
         else:
-            turn_radius = vx / wz
+            travel_sign = 1.0 if vx >= 0.0 else -1.0
+            turn_left = wz > 0.0
+            turn_radius = abs(vx / wz)
             half_track = self.track_width * 0.5
 
-            left_radius = turn_radius - half_track
-            right_radius = turn_radius + half_track
+            inner_radius = max(turn_radius - half_track, 1e-6)
+            outer_radius = turn_radius + half_track
+            inner_steer = math.atan2(self.wheelbase, inner_radius)
+            outer_steer = math.atan2(self.wheelbase, outer_radius)
 
-            left_steer = math.atan2(self.wheelbase, left_radius)
-            right_steer = math.atan2(self.wheelbase, right_radius)
+            if turn_left:
+                left_steer = inner_steer
+                right_steer = outer_steer
+                left_radius = inner_radius
+                right_radius = outer_radius
+            else:
+                left_steer = -outer_steer
+                right_steer = -inner_steer
+                left_radius = outer_radius
+                right_radius = inner_radius
 
             left_steer = max(-self.max_steer_angle, min(self.max_steer_angle, left_steer))
             right_steer = max(-self.max_steer_angle, min(self.max_steer_angle, right_steer))
 
-            rear_left_linear = wz * left_radius
-            rear_right_linear = wz * right_radius
-            front_left_linear = wz * math.sqrt((left_radius * left_radius) + (self.wheelbase * self.wheelbase))
-            front_right_linear = wz * math.sqrt((right_radius * right_radius) + (self.wheelbase * self.wheelbase))
+            turn_rate = abs(wz)
+            rear_left_linear = travel_sign * turn_rate * left_radius
+            rear_right_linear = travel_sign * turn_rate * right_radius
+            front_left_linear = travel_sign * turn_rate * math.sqrt(
+                (left_radius * left_radius) + (self.wheelbase * self.wheelbase)
+            )
+            front_right_linear = travel_sign * turn_rate * math.sqrt(
+                (right_radius * right_radius) + (self.wheelbase * self.wheelbase)
+            )
 
             front_left_speed = front_left_linear / self.wheel_radius
             front_right_speed = front_right_linear / self.wheel_radius

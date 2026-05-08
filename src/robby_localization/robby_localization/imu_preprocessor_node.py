@@ -32,8 +32,7 @@ class ImuPreprocessorNode(Node):
 
     def imu_callback(self, message: Imu) -> None:
         processed = deepcopy(message)
-        if not processed.header.frame_id:
-            processed.header.frame_id = self.frame_id
+        processed.header.frame_id = self.frame_id
 
         if covariance_is_unset(processed.orientation_covariance):
             processed.orientation_covariance = [
