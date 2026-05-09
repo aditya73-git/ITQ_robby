@@ -330,8 +330,8 @@ class LocalizationInputNode(Node):
         odom.pose.covariance[28] = 1e6
         odom.pose.covariance[35] = 0.05
 
-        odom.twist.covariance[0] = 0.05
-        odom.twist.covariance[7] = 0.05
+        odom.twist.covariance[0] = 0.2 #0.05
+        odom.twist.covariance[7] = 0.5 #0.05
         odom.twist.covariance[14] = 1e6
         odom.twist.covariance[21] = 1e6
         odom.twist.covariance[28] = 1e6

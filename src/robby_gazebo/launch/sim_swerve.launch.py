@@ -1,12 +1,25 @@
 from pathlib import Path
+import yaml
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
+
+
+def load_sim_defaults(gazebo_share: Path) -> dict:
+    config_path = gazebo_share / "config" / "sim_swerve.yaml"
+    with config_path.open("r", encoding="ascii") as config_file:
+        data = yaml.safe_load(config_file) or {}
+
+    defaults = data.get("sim_swerve", {})
+    if not isinstance(defaults, dict):
+        raise ValueError(f"sim_swerve section in {config_path} must be a mapping")
+    return defaults
 
 
 def generate_launch_description():
@@ -15,13 +28,26 @@ def generate_launch_description():
     gazebo_share = Path(get_package_share_directory("robby_gazebo"))
     localization_share = Path(get_package_share_directory("robby_localization"))
     ros_gz_share = Path(get_package_share_directory("ros_gz_sim"))
+    sim_defaults = load_sim_defaults(gazebo_share)
 
     xacro_path = description_share / "urdf" / "Robby_v1.gazebo.xacro"
     mesh_dir = description_share / "meshes"
     controllers_file = gazebo_share / "config" / "ros2_controllers.yaml"
-    world_file = gazebo_share / "worlds" / "empty.world.sdf"
+    world_default = str(
+        gazebo_share / "worlds" / str(sim_defaults.get("world_file", "empty.world.sdf"))
+    )
+    world_file = LaunchConfiguration("world_file")
     use_lidar = LaunchConfiguration("use_lidar")
     use_camera = LaunchConfiguration("use_camera")
+    enable_localization = LaunchConfiguration("enable_localization")
+    enable_laser_odometry = LaunchConfiguration("enable_laser_odometry")
+    enable_slam = LaunchConfiguration("enable_slam")
+    spawn_x = LaunchConfiguration("spawn_x")
+    spawn_y = LaunchConfiguration("spawn_y")
+    spawn_z = LaunchConfiguration("spawn_z")
+    spawn_roll = LaunchConfiguration("spawn_roll")
+    spawn_pitch = LaunchConfiguration("spawn_pitch")
+    spawn_yaw = LaunchConfiguration("spawn_yaw")
 
     robot_description = Command(
         [
@@ -54,7 +80,7 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(str(ros_gz_share / "launch" / "gz_sim.launch.py")),
         launch_arguments={
-            "gz_args": f"-r {world_file}",
+            "gz_args": ["-r ", world_file],
             "on_exit_shutdown": "true",
         }.items(),
     )
@@ -83,12 +109,12 @@ def generate_launch_description():
                 "topic": "/robot_description",
                 "name": "robby",
                 "allow_renaming": False,
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.2,
-                "R": 0.0,
-                "P": 0.0,
-                "Y": 0.0,
+                "x": spawn_x,
+                "y": spawn_y,
+                "z": spawn_z,
+                "R": spawn_roll,
+                "P": spawn_pitch,
+                "Y": spawn_yaw,
             }
         ],
     )
@@ -137,12 +163,13 @@ def generate_launch_description():
     )
 
     localization = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(str(localization_share / "launch" / "localization.launch.py"))
+        PythonLaunchDescriptionSource(str(localization_share / "launch" / "localization.launch.py")),
+        launch_arguments={
+            "enable_laser_odometry": enable_laser_odometry,
+            "enable_slam": enable_slam,
+        }.items(),
+        condition=IfCondition(enable_localization),
     )
-    evaluation = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(str(localization_share / "launch" / "evaluation.launch.py"))
-    )
-
     load_joint_state_broadcaster = RegisterEventHandler(
         OnProcessExit(target_action=spawn_robot, on_exit=[joint_state_broadcaster])
     )
@@ -157,13 +184,63 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "use_lidar",
-                default_value="false",
+                default_value=str(sim_defaults.get("use_lidar", False)).lower(),
                 description="Enable the modular 2D lidar overlay and bridge /scan.",
             ),
             DeclareLaunchArgument(
+                "world_file",
+                default_value=world_default,
+                description="Absolute path to the Gazebo world file.",
+            ),
+            DeclareLaunchArgument(
                 "use_camera",
-                default_value="false",
+                default_value=str(sim_defaults.get("use_camera", False)).lower(),
                 description="Enable the modular camera overlay and bridge /camera/image_raw.",
+            ),
+            DeclareLaunchArgument(
+                "enable_localization",
+                default_value=str(sim_defaults.get("enable_localization", True)).lower(),
+                description="Start the default wheel+IMU localization stack.",
+            ),
+            DeclareLaunchArgument(
+                "enable_laser_odometry",
+                default_value=str(sim_defaults.get("enable_laser_odometry", True)).lower(),
+                description="Enable laser odometry publishing and fuse /laser/odom into the EKF.",
+            ),
+            DeclareLaunchArgument(
+                "enable_slam",
+                default_value=str(sim_defaults.get("enable_slam", False)).lower(),
+                description="Enable slam_toolbox inside the single localization launch.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_x",
+                default_value=str(sim_defaults.get("spawn_x", 0.0)),
+                description="Robot spawn x position in the Gazebo world.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_y",
+                default_value=str(sim_defaults.get("spawn_y", 0.0)),
+                description="Robot spawn y position in the Gazebo world.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_z",
+                default_value=str(sim_defaults.get("spawn_z", 0.2)),
+                description="Robot spawn z position in the Gazebo world.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_roll",
+                default_value=str(sim_defaults.get("spawn_roll", 0.0)),
+                description="Robot spawn roll in radians.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_pitch",
+                default_value=str(sim_defaults.get("spawn_pitch", 0.0)),
+                description="Robot spawn pitch in radians.",
+            ),
+            DeclareLaunchArgument(
+                "spawn_yaw",
+                default_value=str(sim_defaults.get("spawn_yaw", 0.0)),
+                description="Robot spawn yaw in radians.",
             ),
             gazebo,
             sim_bridge,
@@ -175,6 +252,5 @@ def generate_launch_description():
             swerve_cmd_node,
             joint_command_bridge,
             localization,
-            evaluation,
         ]
     )

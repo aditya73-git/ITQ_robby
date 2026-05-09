@@ -1,0 +1,149 @@
+localization_input_node:
+  ros__parameters:
+    use_sim_time: true
+    imu_input_topic: /imu/data
+    imu_output_topic: /imu/data/filtered
+    imu_frame_id: imu_link
+    joint_state_topic: /joint_states
+    wheel_odom_topic: /wheel/odom
+    drive_joint_names:
+      - f_leftwheel
+      - b_leftwheel
+      - b_rightwheel
+      - f_rightwheel
+    steer_joint_names:
+      - f_left_steer
+      - b_leftsteer
+      - b_rightsteer
+      - f_right_steer
+    wheel_positions:
+      - 0.2014
+      - 0.16556
+      - -0.20473
+      - 0.16556
+      - -0.2046
+      - -0.16556
+      - 0.20127
+      - -0.16556
+    effective_wheel_radius: 0.052
+    drive_joint_multipliers:
+      - 1.0
+      - 1.0
+      - -1.0
+      - -1.0
+    odom_frame: odom
+    base_frame: base_footprint
+    publish_tf: false
+
+laser_odometry_node:
+  ros__parameters:
+    use_sim_time: true
+    publish_odom: /laser/odom
+    publish_tf: false
+    base_frame: base_footprint
+    odom_frame: odom
+    laser_frame: lidar_link
+
+ekf_filter_node:
+  ros__parameters:
+    use_sim_time: true
+    frequency: 50.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+    print_diagnostics: true
+    debug: false
+    publish_tf: true
+    publish_acceleration: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    odom0: /wheel/odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true, false, false,
+                   false, false, false,
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_differential: false
+    odom0_relative: false
+    odom0_twist_rejection_threshold: 2.0
+
+    odom1: /laser/odom
+    odom1_config: [true, true, false,
+                   false, false, false,
+                   true, true, false,
+                   false, false, false,
+                   false, false, false]
+    odom1_queue_size: 10
+    odom1_differential: false
+    odom1_relative: false
+    odom1_twist_rejection_threshold: 2.0
+
+    imu0: /imu/data/filtered
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_queue_size: 20
+    imu0_differential: false
+    imu0_relative: true
+    imu0_remove_gravitational_acceleration: true
+    imu0_twist_rejection_threshold: 1.5
+
+    process_noise_covariance: [0.08, 0.08, 1.0,
+                               1.0, 1.0, 0.08,
+                               0.05, 0.05, 1.0,
+                               1.0, 1.0, 0.05,
+                               0.2, 0.2, 1.0]
+
+    initial_estimate_covariance: [1e-3, 1e-3, 1.0,
+                                  1.0, 1.0, 1e-3,
+                                  1e-3, 1e-3, 1.0,
+                                  1.0, 1.0, 1e-3,
+                                  0.5, 0.5, 1.0]
+
+slam_toolbox:
+  ros__parameters:
+    use_sim_time: true
+    mode: mapping
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /scan
+    scan_queue_size: 1
+    use_map_saver: true
+    resolution: 0.05
+    map_update_interval: 2.0
+    transform_publish_period: 0.02
+    tf_buffer_duration: 30.0
+    minimum_time_interval: 0.1
+    max_laser_range: 12.0
+    minimum_travel_distance: 0.10
+    minimum_travel_heading: 0.10
+    use_scan_matching: true
+    use_scan_barycenter: true
+    do_loop_closing: true
+    loop_match_minimum_chain_size: 10
+    loop_search_maximum_distance: 6.0
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1
+    distance_variance_penalty: 0.5
+    angle_variance_penalty: 1.0
+    fine_search_angle_offset: 0.00349
+    coarse_search_angle_offset: 0.349
+    coarse_angle_resolution: 0.0349
+    minimum_angle_penalty: 0.9
+    minimum_distance_penalty: 0.5
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None

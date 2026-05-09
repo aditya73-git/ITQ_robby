@@ -90,7 +90,7 @@ Legacy notes:
 
 Main files:
 - `robby_gazebo/launch/sim_swerve.launch.py`
-- `robby_gazebo/launch/sim_swerve_mapping.launch.py`
+- `robby_gazebo/launch/sim_swerve.launch.py`
 - `robby_gazebo/config/ros2_controllers.yaml`
 - `robby_gazebo/worlds/empty.world.sdf`
 
@@ -100,17 +100,15 @@ This package contains the first localization stack for simulation and later hard
 
 It currently contains:
 - A localization input node that preprocesses IMU data and computes wheel odometry from joint states using the paper-based kinematic model
-- A `robot_localization` EKF config that fuses wheel odometry with IMU data
-- A state error monitor that compares a reference odometry source against the filtered estimate
+- A `robot_localization` EKF config that fuses wheel odometry, lidar odometry, and IMU data
 - A launch file for the sensor-fusion pipeline
 - A `slam_toolbox` mapping config and launch
 
 Main files:
 - `robby_localization/src/robby_localization/localization_input_node.py`
-- `robby_localization/src/robby_localization/state_error_monitor_node.py`
 - `robby_localization/config/ekf.yaml`
 - `robby_localization/config/slam_toolbox.yaml`
-- `robby_localization/launch/evaluation.launch.py`
+- `robby_localization/launch/laser_odometry.launch.py`
 - `robby_localization/launch/localization.launch.py`
 - `robby_localization/launch/slam_mapping.launch.py`
 
@@ -119,7 +117,7 @@ Main files:
 This package is the workspace toolbox for logging, plotting, and one-off debugging scripts.
 
 It currently contains:
-- A live CSV logger for ground truth, wheel odometry, EKF output, command input, and estimation error
+- A live CSV logger for ground truth, wheel odometry, lidar odometry, EKF output, and command input
 - A simple offline plotting script for trajectories and error curves
 - A small launch file to start the logger
 
@@ -150,9 +148,7 @@ Main files:
 - A simulated IMU now exists in Gazebo
 - Optional modular 2D lidar and camera sensors now exist in the robot description and Gazebo overlay
 - The Gazebo launch now bridges IMU data into ROS
-- An EKF now fuses `/wheel/odom` and `/imu/data/filtered`
-- Gazebo now publishes `/ground_truth/odom` as a reference source for evaluation
-- A monitor now compares `/ground_truth/odom` against `/odometry/filtered`
+- An EKF now fuses `/wheel/odom`, `/laser/odom`, and `/imu/data/filtered`
 - `slam_toolbox` now produces a 2D map from `/scan`
 
 Recommended launch command:
@@ -173,7 +169,7 @@ Recommended Gazebo swerve mapping launch command:
 
 ```bash
 source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
-ros2 launch robby_gazebo sim_swerve_mapping.launch.py
+ros2 launch robby_gazebo sim_swerve.launch.py
 ```
 
 Recommended localization-only launch command:
@@ -204,12 +200,7 @@ source /home/aditya/ros2_ws/ITQ_robby/install/setup.bash
 ros2 run robby_debug plot_debug_csv /home/aditya/ros2_ws/ITQ_robby/debug_logs/<log_name>.csv
 ```
 
-Reference evaluation is started automatically by the Gazebo sim launch. It compares:
-- `/ground_truth/odom`
-- `/odometry/filtered`
-
-and publishes:
-- `/state_estimation/error`
+Ground-truth comparison is now done offline from the debug CSV logs during plotting.
 
 ## Important Notes
 
