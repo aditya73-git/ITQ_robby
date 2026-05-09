@@ -1,1 +1,1 @@
-"""Localization package for the ITQ Robby platform."""
+"""Localization nodes for the Robby workspace."""

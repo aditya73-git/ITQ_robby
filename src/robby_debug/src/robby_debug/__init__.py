@@ -1,1 +1,1 @@
-"""Debugging and evaluation tools for the ITQ Robby workspace."""
+"""Debug tools for the Robby workspace."""

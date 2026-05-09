@@ -9,7 +9,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu, JointState
 from tf2_ros import TransformBroadcaster
 
-from robby_control.kinematic_model import FourWIS4WIDKinematicModel
+from robby_control.swerve_kinematic_model import FourWIS4WIDKinematicModel
 
 
 def covariance_is_unset(values: Iterable[float]) -> bool:

@@ -21,7 +21,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterable, Sequence
 
-from robby_control.kinematic_model import (
+from robby_control.swerve_kinematic_model import (
     BodyTwist,
     FourWIS4WIDKinematicModel,
     WorldTwist,

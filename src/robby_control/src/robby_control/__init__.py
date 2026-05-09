@@ -1,6 +1,6 @@
 """Public API for the Robby control package."""
 
-from .controller import (
+from .swerve_controller import (
     FourWIS4WIDKinematicController,
     KinematicControlDebug,
     KinematicControlResult,
@@ -9,7 +9,7 @@ from .controller import (
     WheelReference,
     normalize_angle,
 )
-from .kinematic_model import (
+from .swerve_kinematic_model import (
     BodyTwist,
     FourWIS4WIDKinematicModel,
     RobotStateDerivative,

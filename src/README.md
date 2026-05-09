@@ -67,8 +67,8 @@ Legacy notes:
 - The older Ackermann test stack and standalone `swerve_odometry_node` path were archived outside the workspace to keep the active stack focused.
 
 Main files:
-- `robby_control/src/robby_control/kinematic_model.py`
-- `robby_control/src/robby_control/controller.py`
+- `robby_control/src/robby_control/swerve_kinematic_model.py`
+- `robby_control/src/robby_control/swerve_controller.py`
 - `robby_control/src/robby_control/swerve_cmd_node.py`
 - `robby_control/src/robby_control/joint_command_bridge.py`
 - `robby_control/launch/swerve.launch.py`

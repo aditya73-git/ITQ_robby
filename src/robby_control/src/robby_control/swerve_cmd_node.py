@@ -6,8 +6,8 @@ from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
-from robby_control.controller import FourWIS4WIDKinematicController, Pose2D
-from robby_control.kinematic_model import BodyTwist, FourWIS4WIDKinematicModel
+from robby_control.swerve_controller import FourWIS4WIDKinematicController, Pose2D
+from robby_control.swerve_kinematic_model import BodyTwist, FourWIS4WIDKinematicModel
 
 
 class SwerveCmdNode(Node):
