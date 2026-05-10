@@ -1,4 +1,10 @@
 sim_swerve:
+  # Save the full terminal output of the sim launch to a timestamped log file.
+  enable_runtime_logging: false
+
+  # Subdirectory under the workspace root where sim launch logs should be written.
+  runtime_log_subdir: debug_logs/launch_output
+
   # Enable the 2D lidar overlay on the robot and bridge the /scan topic into ROS 2.
   use_lidar: true
 
@@ -15,6 +21,12 @@ sim_swerve:
   # Start slam_toolbox inside the same localization launch.
   # This should usually be true only for mapping / map-relative localization workflows.
   enable_slam: true
+
+  # Start saved-map localization with nav2_map_server + AMCL.
+  enable_saved_map_localization: false
+
+  # Start Nav2 servers on top of the saved-map localization stack.
+  enable_nav2: false
 
   # Gazebo world file to load, relative to robby_gazebo/worlds/.
   world_file: mapping_arena.world.sdf

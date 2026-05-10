@@ -11,4 +11,10 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+    scripts/sim_with_logging
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

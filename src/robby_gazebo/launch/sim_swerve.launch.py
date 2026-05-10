@@ -7,7 +7,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Regi
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -42,6 +42,9 @@ def generate_launch_description():
     enable_localization = LaunchConfiguration("enable_localization")
     enable_laser_odometry = LaunchConfiguration("enable_laser_odometry")
     enable_slam = LaunchConfiguration("enable_slam")
+    enable_saved_map_localization = LaunchConfiguration("enable_saved_map_localization")
+    enable_nav2 = LaunchConfiguration("enable_nav2")
+    map_yaml_file = LaunchConfiguration("map_yaml_file")
     spawn_x = LaunchConfiguration("spawn_x")
     spawn_y = LaunchConfiguration("spawn_y")
     spawn_z = LaunchConfiguration("spawn_z")
@@ -167,8 +170,25 @@ def generate_launch_description():
         launch_arguments={
             "enable_laser_odometry": enable_laser_odometry,
             "enable_slam": enable_slam,
+            "enable_saved_map_localization": enable_saved_map_localization,
+            "map_yaml_file": map_yaml_file,
         }.items(),
         condition=IfCondition(enable_localization),
+    )
+
+    navigation = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(str(localization_share / "launch" / "nav2.launch.py")),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "'",
+                    enable_nav2,
+                    "' == 'true' and '",
+                    enable_saved_map_localization,
+                    "' == 'true'",
+                ]
+            )
+        ),
     )
     load_joint_state_broadcaster = RegisterEventHandler(
         OnProcessExit(target_action=spawn_robot, on_exit=[joint_state_broadcaster])
@@ -213,6 +233,21 @@ def generate_launch_description():
                 description="Enable slam_toolbox inside the single localization launch.",
             ),
             DeclareLaunchArgument(
+                "enable_saved_map_localization",
+                default_value=str(sim_defaults.get("enable_saved_map_localization", False)).lower(),
+                description="Enable nav2_map_server + AMCL in the localization launch.",
+            ),
+            DeclareLaunchArgument(
+                "enable_nav2",
+                default_value=str(sim_defaults.get("enable_nav2", False)).lower(),
+                description="Enable Nav2 on top of saved-map localization.",
+            ),
+            DeclareLaunchArgument(
+                "map_yaml_file",
+                default_value=str(localization_share / "maps" / "arena_map.yaml"),
+                description="Absolute path to the saved-map YAML for AMCL localization.",
+            ),
+            DeclareLaunchArgument(
                 "spawn_x",
                 default_value=str(sim_defaults.get("spawn_x", 0.0)),
                 description="Robot spawn x position in the Gazebo world.",
@@ -252,5 +287,6 @@ def generate_launch_description():
             swerve_cmd_node,
             joint_command_bridge,
             localization,
+            navigation,
         ]
     )
