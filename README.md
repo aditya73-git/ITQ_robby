@@ -11,6 +11,19 @@ This repository is centered on simulation-first development:
 - Nav2 on top of the existing frame chain
 - debug logging and offline plotting
 
+## Quick Start
+
+```bash
+git clone git@github.com:aditya73-git/ITQ_robby.git
+cd ITQ_robby
+source /opt/ros/jazzy/setup.bash
+vcs import src < robby_sources.repos
+rosdep install --from-paths src --ignore-src -r -y
+colcon build
+source install/setup.bash
+ros2 launch robby_gazebo sim_swerve.launch.py
+```
+
 ## Repository Layout
 
 - `src/robby_description`
@@ -33,6 +46,7 @@ This repository is centered on simulation-first development:
 - Gazebo Harmonic / ROS-Gazebo packages for Jazzy
 - `python3-colcon-common-extensions`
 - `python3-rosdep`
+- `python3-vcstool`
 
 If `rosdep` has not been initialized on your machine yet:
 
@@ -49,6 +63,16 @@ Clone the repository wherever you want your workspace to live:
 git clone <your-repo-url> ITQ_robby
 cd ITQ_robby
 ```
+
+Import the external source dependencies listed in `robby_sources.repos`:
+
+```bash
+vcs import src < robby_sources.repos
+```
+
+This pulls in source packages that are not stored directly in this repository:
+- `csm`
+- `ros2_laser_scan_matcher`
 
 Install package dependencies:
 
