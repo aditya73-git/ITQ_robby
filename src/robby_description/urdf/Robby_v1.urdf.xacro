@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Clean robot description only. Gazebo and ros2_control live in Robby_v1.gazebo.xacro. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Robby_v1">
-  <xacro:arg name="mesh_dir" default="/home/aditya/ros2_ws/ITQ_robby/src/robby_description/meshes" />
+  <xacro:arg name="mesh_dir" default="package://robby_description/meshes" />
   <xacro:arg name="use_lidar" default="false" />
   <xacro:arg name="lidar_xyz" default="0 0 0.15" />
   <xacro:arg name="lidar_rpy" default="0 0 0" />

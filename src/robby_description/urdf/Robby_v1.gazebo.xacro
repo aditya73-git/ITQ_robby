@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Robby_v1">
-  <xacro:arg name="mesh_dir" default="/home/aditya/ros2_ws/ITQ_robby/src/robby_description/meshes" />
+  <xacro:arg name="mesh_dir" default="package://robby_description/meshes" />
   <xacro:arg name="controllers_file" default="" />
   <xacro:arg name="imu_update_rate" default="100.0" />
   <xacro:arg name="use_lidar" default="false" />

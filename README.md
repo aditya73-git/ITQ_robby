@@ -215,6 +215,5 @@ map -> odom -> base_footprint -> base_link -> chassis/sensors
 
 ## Known Limitations
 
-- Some mesh URIs still use absolute `file://` paths and may need cleanup on another machine.
 - Wheel odometry is useful locally, but it is still being tuned against ground truth and laser-based localization.
 - Nav2 controller behavior is still under active tuning for this swerve platform.

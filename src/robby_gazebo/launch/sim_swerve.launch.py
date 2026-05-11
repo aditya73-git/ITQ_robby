@@ -1,9 +1,15 @@
+import os
 from pathlib import Path
 import yaml
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    RegisterEventHandler,
+    SetEnvironmentVariable,
+)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -31,7 +37,6 @@ def generate_launch_description():
     sim_defaults = load_sim_defaults(gazebo_share)
 
     xacro_path = description_share / "urdf" / "Robby_v1.gazebo.xacro"
-    mesh_dir = description_share / "meshes"
     controllers_file = gazebo_share / "config" / "ros2_controllers.yaml"
     world_default = str(
         gazebo_share / "worlds" / str(sim_defaults.get("world_file", "empty.world.sdf"))
@@ -57,7 +62,7 @@ def generate_launch_description():
             "xacro ",
             str(xacro_path),
             " mesh_dir:=",
-            str(mesh_dir),
+            "package://robby_description/meshes",
             " controllers_file:=",
             str(controllers_file),
             " use_lidar:=",
@@ -190,6 +195,18 @@ def generate_launch_description():
             )
         ),
     )
+
+    resource_roots = [str(description_share.parent), str(gazebo_share.parent)]
+    existing_resource_path = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
+    gz_resource_path = os.pathsep.join(
+        [entry for entry in [*resource_roots, existing_resource_path] if entry]
+    )
+
+    set_gz_resource_path = SetEnvironmentVariable(
+        name="GZ_SIM_RESOURCE_PATH",
+        value=gz_resource_path,
+    )
+
     load_joint_state_broadcaster = RegisterEventHandler(
         OnProcessExit(target_action=spawn_robot, on_exit=[joint_state_broadcaster])
     )
@@ -202,6 +219,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            set_gz_resource_path,
             DeclareLaunchArgument(
                 "use_lidar",
                 default_value=str(sim_defaults.get("use_lidar", False)).lower(),
