@@ -170,6 +170,11 @@ Launch sim with terminal output mirrored into a log file:
 ros2 run robby_gazebo sim_with_logging
 ```
 
+With `use_camera:=true`, the simulated RGB-D camera publishes:
+- `/camera/image`
+- `/camera/depth_image`
+- `/camera/camera_info`
+
 The logging behavior is controlled in `src/robby_gazebo/config/sim_swerve.yaml`:
 - `enable_runtime_logging`
 - `runtime_log_subdir`

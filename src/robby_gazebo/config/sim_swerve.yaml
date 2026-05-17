@@ -8,7 +8,8 @@ sim_swerve:
   # Enable the 2D lidar overlay on the robot and bridge the /scan topic into ROS 2.
   use_lidar: true
 
-  # Enable the camera overlay on the robot and bridge the /camera/image_raw topic.
+  # Enable the RGB-D camera overlay and bridge /camera/image, /camera/depth_image,
+  # and /camera/camera_info into ROS 2.
   use_camera: true
 
   # Start the localization stack from robby_localization/launch/localization.launch.py.

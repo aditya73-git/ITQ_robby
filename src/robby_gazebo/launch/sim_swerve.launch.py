@@ -103,7 +103,9 @@ def generate_launch_description():
             "/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU",
             "/ground_truth/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry",
             "/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
-            "/camera/image_raw@sensor_msgs/msg/Image@gz.msgs.Image",
+            "/camera/image@sensor_msgs/msg/Image@gz.msgs.Image",
+            "/camera/depth_image@sensor_msgs/msg/Image@gz.msgs.Image",
+            "/camera/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo",
         ],
     )
 
@@ -233,7 +235,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "use_camera",
                 default_value=str(sim_defaults.get("use_camera", False)).lower(),
-                description="Enable the modular camera overlay and bridge /camera/image_raw.",
+                description="Enable the RGB-D camera overlay and bridge /camera/image, /camera/depth_image, and /camera/camera_info.",
             ),
             DeclareLaunchArgument(
                 "enable_localization",

@@ -4,15 +4,7 @@
   <xacro:arg name="controllers_file" default="" />
   <xacro:arg name="imu_update_rate" default="100.0" />
   <xacro:arg name="use_lidar" default="false" />
-  <xacro:arg name="lidar_xyz" default="0 0 0.15" />
-  <xacro:arg name="lidar_rpy" default="0 0 0" />
-  <xacro:arg name="lidar_topic" default="/scan" />
-  <xacro:arg name="lidar_update_rate" default="15.0" />
   <xacro:arg name="use_camera" default="false" />
-  <xacro:arg name="camera_xyz" default="0.12 0 0.18" />
-  <xacro:arg name="camera_rpy" default="0 0 0" />
-  <xacro:arg name="camera_topic" default="/camera/image_raw" />
-  <xacro:arg name="camera_update_rate" default="15.0" />
 
   <xacro:include filename="Robby_v1.core.xacro" />
   <xacro:include filename="Robby_v1.lidar.xacro" />
@@ -37,23 +29,11 @@
   <xacro:robby_robot mesh_dir="$(arg mesh_dir)" />
 
   <xacro:if value="$(arg use_lidar)">
-    <xacro:robby_lidar
-      parent="chassis_link"
-      xyz="$(arg lidar_xyz)"
-      rpy="$(arg lidar_rpy)"
-      add_gazebo="true"
-      topic="$(arg lidar_topic)"
-      update_rate="$(arg lidar_update_rate)" />
+    <xacro:robby_lidar add_gazebo="true" />
   </xacro:if>
 
   <xacro:if value="$(arg use_camera)">
-    <xacro:robby_camera
-      parent="chassis_link"
-      xyz="$(arg camera_xyz)"
-      rpy="$(arg camera_rpy)"
-      add_gazebo="true"
-      topic="$(arg camera_topic)"
-      update_rate="$(arg camera_update_rate)" />
+    <xacro:robby_camera add_gazebo="true" />
   </xacro:if>
 
   <gazebo reference="imu_link">

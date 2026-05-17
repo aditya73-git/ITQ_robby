@@ -4,10 +4,10 @@
     name="robby_camera"
     params="
       parent:=chassis_link
-      xyz:='0.12 0 0.18'
+      xyz:='0.15 0.0 0.0195'
       rpy:='0 0 0'
       add_gazebo:=false
-      topic:=/camera/image_raw
+      topic:=/camera
       update_rate:=15.0
       width:=640
       height:=480
@@ -18,24 +18,30 @@
     <link name="camera_link">
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0" />
-        <mass value="0.12" />
-        <inertia ixx="8e-5" ixy="0.0" ixz="0.0" iyy="8e-5" iyz="0.0" izz="8e-5" />
+        <mass value="0.0387416202428435" />
+        <inertia
+          ixx="1.08456634317136E-05"
+          ixy="0.0"
+          ixz="0.0"
+          iyy="7.10436611069618E-06"
+          iyz="0.0"
+          izz="7.1103467824982E-06" />
       </inertial>
 
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="0.05 0.04 0.035" />
+          <mesh filename="package://robby_description/meshes/camera_link.STL" />
         </geometry>
-        <material name="camera_black">
-          <color rgba="0.08 0.08 0.08 1.0" />
+        <material name="camera_body">
+          <color rgba="0.05 0.12 0.55 1" />
         </material>
       </visual>
 
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="0.05 0.04 0.035" />
+          <box size="0.023 0.0421 0.0420" />
         </geometry>
       </collision>
     </link>
@@ -62,7 +68,8 @@
 
     <xacro:if value="${add_gazebo}">
       <gazebo reference="camera_link">
-        <sensor name="camera_sensor" type="camera">
+        <material>Gazebo/Blue</material>
+        <sensor name="camera_sensor" type="rgbd_camera">
           <always_on>1</always_on>
           <update_rate>${update_rate}</update_rate>
           <topic>${topic}</topic>
