@@ -1,0 +1,14 @@
+teleop_twist_joy_node:
+  ros__parameters:
+    axis_linear:
+      x: 1        # left stick Y
+    axis_angular:
+      yaw: 0      # left stick X
+    scale_linear:
+      x: 1.0      # max 1.0 m/s
+    scale_angular:
+      yaw: -2.0   # negative: right stick = right turn (ROS angular.z convention)
+    scale_linear_turbo:
+      x: 1.0
+    require_enable_button: false
+    publish_stamped_twist: true

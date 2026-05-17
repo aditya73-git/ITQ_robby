@@ -1,0 +1,10 @@
+<library path="robot_hardware">
+  <class name="robot_hardware/SerialHardwareInterface"
+         type="robot_hardware::SerialHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Serial ros2_control hardware interface for the interpack robot.
+      Sends differential drive commands (fwd,steer\n) to an ESP32 over UART.
+    </description>
+  </class>
+</library>
